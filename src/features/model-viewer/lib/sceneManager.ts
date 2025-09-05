@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { ThreeConfig, type ThreeJSConfigOptions } from '../../../shared/config/Three';
+import { SCENE_CONSTANTS, TOUCH_CONSTANTS, CAMERA_CONSTANTS, MODEL_CONSTANTS } from '../../../shared/config/Constants';
 
 export interface SceneManagerOptions {
   config?: ThreeJSConfigOptions;
@@ -17,10 +18,10 @@ export class SceneManagerService {
     isRotating: false,
     isZooming: false,
     lastTouchPositions: [] as Array<{ x: number; y: number }>,
-    lastDistance: 0,
+    lastDistance: TOUCH_CONSTANTS.INITIAL_DISTANCE,
     lastCenter: { x: 0, y: 0 },
-    rotationSpeed: 0.005,
-    zoomSpeed: 0.01
+    rotationSpeed: TOUCH_CONSTANTS.ROTATION_SPEED,
+    zoomSpeed: TOUCH_CONSTANTS.ZOOM_SPEED
   };
 
   constructor(options: SceneManagerOptions) {
@@ -64,17 +65,17 @@ export class SceneManagerService {
   };
 
   private setupMobileControls = (): void => {
-    this.controls.rotateSpeed = 1.0;
-    this.controls.zoomSpeed = 1.2;
-    this.controls.panSpeed = 0.8;
+    this.controls.rotateSpeed = CAMERA_CONSTANTS.ORBIT_CONTROLS.ROTATE_SPEED;
+    this.controls.zoomSpeed = CAMERA_CONSTANTS.ORBIT_CONTROLS.ZOOM_SPEED;
+    this.controls.panSpeed = CAMERA_CONSTANTS.ORBIT_CONTROLS.PAN_SPEED;
     
-    this.controls.minDistance = 2;
-    this.controls.maxDistance = 20;
-    this.controls.maxPolarAngle = Math.PI * 0.9;
-    this.controls.minPolarAngle = Math.PI * 0.1;
+    this.controls.minDistance = CAMERA_CONSTANTS.MIN_DISTANCE;
+    this.controls.maxDistance = CAMERA_CONSTANTS.MAX_DISTANCE;
+    this.controls.maxPolarAngle = Math.PI * CAMERA_CONSTANTS.ORBIT_CONTROLS.MAX_POLAR_ANGLE_FACTOR;
+    this.controls.minPolarAngle = Math.PI * CAMERA_CONSTANTS.ORBIT_CONTROLS.MIN_POLAR_ANGLE_FACTOR;
     
     this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.1;
+    this.controls.dampingFactor = CAMERA_CONSTANTS.ORBIT_CONTROLS.MOBILE_DAMPING_FACTOR;
     
     this.controls.touches = {
       ONE: THREE.TOUCH.ROTATE,
@@ -155,7 +156,7 @@ export class SceneManagerService {
     spherical.theta -= deltaX * this.touchState.rotationSpeed;
     spherical.phi += deltaY * this.touchState.rotationSpeed;
     
-    spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+    spherical.phi = Math.max(CAMERA_CONSTANTS.MIN_POLAR_ANGLE, Math.min(CAMERA_CONSTANTS.MAX_POLAR_ANGLE, spherical.phi));
     
     offset.setFromSpherical(spherical);
     camera.position.copy(target).add(offset);
@@ -223,7 +224,7 @@ export class SceneManagerService {
     
     const angleDelta = currentAngle - lastAngle;
 
-    this.controls.object.rotateZ(-angleDelta * 0.5);
+    this.controls.object.rotateZ(-angleDelta * TOUCH_CONSTANTS.TWO_FINGER_ROTATION_MULTIPLIER);
   };
 
   private getTouchDistance = (touch1: Touch, touch2: Touch): number => {
@@ -242,26 +243,39 @@ export class SceneManagerService {
   private setupDefaultScene = (): void => {
     const { scene } = this.threeConfig;
 
-    const testGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+    const testGeometry = new THREE.BoxGeometry(
+      SCENE_CONSTANTS.TEST_CUBE.SIZE,
+      SCENE_CONSTANTS.TEST_CUBE.SIZE,
+      SCENE_CONSTANTS.TEST_CUBE.SIZE
+    );
     const testMaterial = new THREE.MeshStandardMaterial({ 
-      color: 0x4f46e5,
-      metalness: 0.3,
-      roughness: 0.4,
+      color: SCENE_CONSTANTS.TEST_CUBE.COLOR,
+      metalness: SCENE_CONSTANTS.TEST_CUBE.METALNESS,
+      roughness: SCENE_CONSTANTS.TEST_CUBE.ROUGHNESS,
       transparent: true,
-      opacity: 0.7
+      opacity: SCENE_CONSTANTS.TEST_CUBE.OPACITY
     });
     const testCube = new THREE.Mesh(testGeometry, testMaterial);
     testCube.name = 'testCube';
-    testCube.position.set(0, -1.75, 0);
+    testCube.position.set(
+      SCENE_CONSTANTS.TEST_CUBE.POSITION.x,
+      SCENE_CONSTANTS.TEST_CUBE.POSITION.y,
+      SCENE_CONSTANTS.TEST_CUBE.POSITION.z
+    );
     testCube.castShadow = true;
     testCube.receiveShadow = true;
     scene.add(testCube);
 
-    const planeGeometry = new THREE.PlaneGeometry(10, 10);
-    const planeMaterial = new THREE.MeshStandardMaterial({ color: 0x404040 });
+    const planeGeometry = new THREE.PlaneGeometry(
+      SCENE_CONSTANTS.GROUND_PLANE.SIZE,
+      SCENE_CONSTANTS.GROUND_PLANE.SIZE
+    );
+    const planeMaterial = new THREE.MeshStandardMaterial({ 
+      color: SCENE_CONSTANTS.GROUND_PLANE.COLOR 
+    });
     const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-    plane.rotation.x = -Math.PI / 2;
-    plane.position.y = -2;
+    plane.rotation.x = SCENE_CONSTANTS.GROUND_PLANE.ROTATION_X;
+    plane.position.y = SCENE_CONSTANTS.GROUND_PLANE.POSITION_Y;
     plane.receiveShadow = true;
     plane.name = 'groundPlane';
     scene.add(plane);
@@ -310,8 +324,8 @@ export class SceneManagerService {
     const size = box.getSize(new THREE.Vector3());
     
     const maxDimension = Math.max(size.x, size.y, size.z);
-    if (maxDimension > 0) {
-      const scale = 3 / maxDimension;
+    if (maxDimension > MODEL_CONSTANTS.BOUNDING_BOX.MIN_DIMENSION_THRESHOLD) {
+      const scale = MODEL_CONSTANTS.DEFAULT_SCALE_SIZE / maxDimension;
       model.scale.setScalar(scale);
       
       const scaledBox = new THREE.Box3().setFromObject(model);
@@ -320,7 +334,7 @@ export class SceneManagerService {
       
       model.position.set(
         -scaledCenter.x,
-        -2 + scaledSize.y / 2 - scaledCenter.y,
+        MODEL_CONSTANTS.GROUND_OFFSET + scaledSize.y / MODEL_CONSTANTS.SCALE_OFFSET_DIVISOR - scaledCenter.y,
         -scaledCenter.z
       );
     }
@@ -346,12 +360,12 @@ export class SceneManagerService {
     
     const maxDim = Math.max(finalSize.x, finalSize.y, finalSize.z);
     const fov = camera.fov * (Math.PI / 180);
-    const cameraDistance = Math.abs(maxDim / Math.sin(fov / 2)) * 1.5;
+    const cameraDistance = Math.abs(maxDim / Math.sin(fov / 2)) * CAMERA_CONSTANTS.DISTANCE_MULTIPLIER;
     
     const cameraPosition = new THREE.Vector3(
-      finalCenter.x + cameraDistance * 0.7,
-      finalCenter.y + cameraDistance * 0.5,
-      finalCenter.z + cameraDistance * 0.7
+      finalCenter.x + cameraDistance * CAMERA_CONSTANTS.POSITION_OFFSET.X_FACTOR,
+      finalCenter.y + cameraDistance * CAMERA_CONSTANTS.POSITION_OFFSET.Y_FACTOR,
+      finalCenter.z + cameraDistance * CAMERA_CONSTANTS.POSITION_OFFSET.Z_FACTOR
     );
     
     camera.position.copy(cameraPosition);
@@ -411,7 +425,7 @@ export class SceneManagerService {
   public rotateCameraTwoFinger = (angleDelta: number): void => {
     const camera = this.threeConfig.camera;
     
-    camera.rotateZ(-angleDelta * 0.5);
+    camera.rotateZ(-angleDelta * TOUCH_CONSTANTS.TWO_FINGER_ROTATION_MULTIPLIER);
   };
 
   dispose = (): void => {

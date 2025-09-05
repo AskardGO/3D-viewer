@@ -1,0 +1,27 @@
+export const MODEL_CONSTANTS = {
+  DEFAULT_SCALE_SIZE: 3,
+  GROUND_OFFSET: -2,
+  SCALE_OFFSET_DIVISOR: 2,
+  
+  DEFAULT_MATERIAL: {
+    COLOR: 0xcccccc,
+    METALNESS: 0.5,
+    ROUGHNESS: 0.2,
+    ENV_MAP_INTENSITY: 1.5
+  },
+  
+  BOUNDING_BOX: {
+    MIN_DIMENSION_THRESHOLD: 0
+  },
+  
+  MAX_FILE_SIZE: {
+    DEFAULT: 50 * 1024 * 1024,
+    LARGE: 100 * 1024 * 1024
+  },
+  
+  HISTORY: {
+    MAX_ITEMS: 20,
+    THUMBNAIL_SIZE: 128,
+    THUMBNAIL_QUALITY: 0.8
+  }
+} as const;
