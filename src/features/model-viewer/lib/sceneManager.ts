@@ -39,6 +39,40 @@ export class SceneManagerService {
     this.controls = new OrbitControls(camera, renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
+    
+    this.setupMobileControls();
+  };
+
+  private setupMobileControls = (): void => {
+    const isTouchDevice = 'ontouchstart' in window || 
+                         navigator.maxTouchPoints > 0 || 
+                         window.innerWidth <= 768;
+    
+    if (isTouchDevice) {
+      this.controls.enableRotate = true;
+      this.controls.enableZoom = true;
+      this.controls.enablePan = true;
+      
+      this.controls.rotateSpeed = 1.0;
+      this.controls.zoomSpeed = 1.2;
+      this.controls.panSpeed = 0.8;
+      
+      this.controls.minDistance = 2;
+      this.controls.maxDistance = 20;
+      this.controls.maxPolarAngle = Math.PI * 0.9;
+      this.controls.minPolarAngle = Math.PI * 0.1;
+      
+      this.controls.enableDamping = true;
+      this.controls.dampingFactor = 0.1;
+      
+      this.controls.domElement?.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+      }, { passive: false });
+      
+      this.controls.domElement?.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+      }, { passive: false });
+    }
   };
 
   private setupDefaultScene = (): void => {
