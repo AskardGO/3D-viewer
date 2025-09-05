@@ -8,6 +8,8 @@ export interface RendererConfig {
   shadowMapEnabled?: boolean;
   shadowMapType?: THREE.ShadowMapType;
   physicallyCorrectLights?: boolean;
+  preserveDrawingBuffer?: boolean;
+  logarithmicDepthBuffer?: boolean;
   shadowMap?: {
     enabled: boolean;
     type: THREE.ShadowMapType;
@@ -77,64 +79,53 @@ interface FullThreeJSConfig {
   lighting: RequiredLightingConfig;
 }
 
-export class ThreeConfig {
-  private static instance: ThreeConfig;
-  
-  public readonly scene: THREE.Scene;
-  public readonly camera: THREE.PerspectiveCamera;
-  public readonly renderer: THREE.WebGLRenderer;
-  public readonly lights: {
-    ambient?: THREE.AmbientLight;
-    directional?: THREE.DirectionalLight;
-  } = {};
-
-  private config: FullThreeJSConfig;
-
-  private static defaultConfig: FullThreeJSConfig = {
-    renderer: {
-      antialias: SCENE_CONSTANTS.RENDERER.ANTIALIAS,
-      alpha: SCENE_CONSTANTS.RENDERER.ALPHA,
-      powerPreference: SCENE_CONSTANTS.RENDERER.POWER_PREFERENCE,
-      shadowMapEnabled: true,
-      shadowMapType: THREE.PCFSoftShadowMap,
-      physicallyCorrectLights: false,
-      shadowMap: {
-        enabled: true,
-        type: THREE.PCFSoftShadowMap
-      }
-    },
-    camera: {
-      fov: CAMERA_CONSTANTS.FOV,
-      aspect: CAMERA_CONSTANTS.ASPECT_RATIO,
-      near: CAMERA_CONSTANTS.NEAR_PLANE,
-      far: CAMERA_CONSTANTS.FAR_PLANE,
-      position: { x: 5, y: 5, z: 5 },
-      lookAt: { x: 0, y: 0, z: 0 }
-    },
-    scene: {
-      background: 0x222222,
-      fog: {
-        enabled: false,
-        color: 0x222222,
-        near: 1,
-        far: 100
-      }
-    },
-    lighting: {
-      ambient: {
-        color: SCENE_CONSTANTS.LIGHTING.AMBIENT.COLOR,
-        intensity: SCENE_CONSTANTS.LIGHTING.AMBIENT.INTENSITY
-      },
-      directional: {
-        color: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.COLOR,
-        intensity: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.INTENSITY,
-        position: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.POSITION,
-        castShadow: true,
-        shadowMapSize: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.SHADOW_MAP_SIZE,
-        shadowCameraSize: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.SHADOW_CAMERA_SIZE
-      }
+export const DEFAULT_CONFIG: FullThreeJSConfig = {
+  renderer: {
+    antialias: SCENE_CONSTANTS.RENDERER.ANTIALIAS,
+    alpha: SCENE_CONSTANTS.RENDERER.ALPHA,
+    powerPreference: SCENE_CONSTANTS.RENDERER.POWER_PREFERENCE,
+    shadowMapEnabled: true,
+    shadowMapType: THREE.PCFSoftShadowMap,
+    physicallyCorrectLights: false,
+    preserveDrawingBuffer: false,
+    logarithmicDepthBuffer: false,
+    shadowMap: {
+      enabled: true,
+      type: THREE.PCFSoftShadowMap
     }
-  };
+  },
+  camera: {
+    fov: CAMERA_CONSTANTS.FOV,
+    aspect: CAMERA_CONSTANTS.ASPECT_RATIO,
+    near: CAMERA_CONSTANTS.NEAR_PLANE,
+    far: CAMERA_CONSTANTS.FAR_PLANE,
+    position: { x: 5, y: 5, z: 5 },
+    lookAt: { x: 0, y: 0, z: 0 }
+  },
+  scene: {
+    background: 0x222222,
+    fog: {
+      enabled: false,
+      color: 0x222222,
+      near: 1,
+      far: 100
+    }
+  },
+  lighting: {
+    ambient: {
+      color: SCENE_CONSTANTS.LIGHTING.AMBIENT.COLOR,
+      intensity: SCENE_CONSTANTS.LIGHTING.AMBIENT.INTENSITY
+    },
+    directional: {
+      color: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.COLOR,
+      intensity: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.INTENSITY,
+      position: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.POSITION,
+      castShadow: true,
+      shadowMapSize: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.SHADOW_MAP_SIZE,
+      shadowCameraSize: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.SHADOW_CAMERA_SIZE
+    }
+  }
+};
 
 export class ThreeConfig {
   private static instance: ThreeConfig;
@@ -150,7 +141,7 @@ export class ThreeConfig {
   private config: FullThreeJSConfig;
 
   private constructor(options: ThreeJSConfigOptions = {}) {
-    this.config = this.mergeConfig(defaultConfig, options);
+    this.config = this.mergeConfig(DEFAULT_CONFIG, options);
     
     this.scene = this.createScene();
     
@@ -241,34 +232,37 @@ export class ThreeConfig {
     const ambientLight = new THREE.AmbientLight(
       this.config.lighting.ambient.color,
       this.config.lighting.ambient.intensity
-      0x87ceeb,
-      0x8B4513,
-      0.6
     );
-    this.scene.add(skyLight);
-
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
     this.scene.add(ambientLight);
+    this.lights.ambient = ambientLight;
 
-    const fillLight = new THREE.DirectionalLight(0xb3d9ff, 0.4);
-    fillLight.position.set(-15, 10, -10);
-    this.scene.add(fillLight);
-
-    const rimLight = new THREE.DirectionalLight(0xffffff, 0.3);
-    rimLight.position.set(0, 5, -25);
-    this.scene.add(rimLight);
-
-    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.0;
-    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-    (this.scene as any).lights = {
-      sun: sunLight,
-      sky: skyLight,
-      ambient: ambientLight,
-      fill: fillLight,
-      rim: rimLight
-    };
+    const directionalLight = new THREE.DirectionalLight(
+      this.config.lighting.directional.color,
+      this.config.lighting.directional.intensity
+    );
+    
+    const pos = this.config.lighting.directional.position;
+    directionalLight.position.set(pos.x, pos.y, pos.z);
+    
+    if (this.config.lighting.directional.castShadow) {
+      directionalLight.castShadow = true;
+      
+      if (this.config.lighting.directional.shadowMapSize) {
+        directionalLight.shadow.mapSize.width = this.config.lighting.directional.shadowMapSize;
+        directionalLight.shadow.mapSize.height = this.config.lighting.directional.shadowMapSize;
+      }
+      
+      if (this.config.lighting.directional.shadowCameraSize) {
+        const size = this.config.lighting.directional.shadowCameraSize;
+        directionalLight.shadow.camera.left = -size;
+        directionalLight.shadow.camera.right = size;
+        directionalLight.shadow.camera.top = size;
+        directionalLight.shadow.camera.bottom = -size;
+      }
+    }
+    
+    this.scene.add(directionalLight);
+    this.lights.directional = directionalLight;
   }
 
   public updateCameraAspect(aspect: number): void {
