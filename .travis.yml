@@ -1,0 +1,100 @@
+language: node_js
+node_js:
+  - "18"
+  - "20"
+
+# Use Yarn as package manager
+cache:
+  yarn: true
+  directories:
+    - node_modules
+
+# Install dependencies
+install:
+  - yarn install --frozen-lockfile
+
+# Build matrix for different environments
+env:
+  - NODE_ENV=production
+  - NODE_ENV=development
+
+# Scripts to run
+script:
+  - yarn lint
+  - yarn build
+
+# Build stages
+stages:
+  - name: test
+    if: type = pull_request OR branch = main
+  - name: build
+    if: branch = main
+  - name: deploy
+    if: branch = main AND type = push
+
+jobs:
+  include:
+    # Lint and type check
+    - stage: test
+      name: "Lint & Type Check"
+      script:
+        - yarn lint
+        - yarn tsc --noEmit
+      env: NODE_ENV=development
+
+    # Build for production
+    - stage: build
+      name: "Production Build"
+      script:
+        - yarn build
+      env: NODE_ENV=production
+      
+    # Optional: Deploy to GitHub Pages
+    - stage: deploy
+      name: "Deploy to GitHub Pages"
+      if: branch = main AND type = push
+      script:
+        - yarn build
+      deploy:
+        provider: pages
+        skip_cleanup: true
+        github_token: $GITHUB_TOKEN
+        local_dir: dist
+        on:
+          branch: main
+
+# Notifications
+notifications:
+  email:
+    on_success: change
+    on_failure: always
+
+# OS configuration
+os: linux
+dist: focal
+
+# Browser testing (optional for 3D viewer)
+addons:
+  chrome: stable
+  firefox: latest
+
+# Before script - setup display for headless browser testing
+before_script:
+  - export DISPLAY=:99.0
+  - sh -e /etc/init.d/xvfb start
+  - sleep 3
+
+# After success - optional coverage reporting
+after_success:
+  - echo "Build completed successfully!"
+
+# Branches to build
+branches:
+  only:
+    - main
+    - develop
+    - /^release\/.*$/
+    - /^hotfix\/.*$/
+
+# Skip builds for certain file changes
+if: NOT (commit_message =~ /\[skip ci\]/)

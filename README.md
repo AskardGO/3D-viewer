@@ -3,7 +3,7 @@
 
 A modern, feature-rich 3D model viewer built with React, TypeScript, and Three.js. This application allows users to load, view, and interact with various 3D model formats in a web browser.
 
-## ✨ Features
+## Features
 
 - **Multiple 3D Format Support**: OBJ, FBX, STL, PLY, DAE, 3DS, GLTF, GLB, 3MF
 - **Interactive Controls**: Manual model rotation with mouse drag, zoom with mouse wheel
@@ -13,7 +13,7 @@ A modern, feature-rich 3D model viewer built with React, TypeScript, and Three.j
 - **Advanced Lighting**: Realistic lighting setup with shadows and tone mapping
 - **Performance Optimized**: Efficient rendering and memory management
 
-## 🚀 Technologies Used
+## Technologies Used
 
 ### Core Framework
 - **React 19.1.1** - Modern UI library with hooks
@@ -39,7 +39,7 @@ A modern, feature-rich 3D model viewer built with React, TypeScript, and Three.j
 - **GSAP 3.13.0** - High-performance animation library
 - **Plugins**: Flip, ScrollTrigger, Draggable, TextPlugin
 
-## 🏗️ Architecture
+## Architecture
 
 The project follows **Feature-Sliced Design (FSD)** architecture principles:
 
@@ -60,7 +60,7 @@ src/
     └── utils/             # Utility functions
 ```
 
-## 🔧 How It Works
+## How It Works
 
 ### 1. Model Loading System
 - **FileValidationService**: Validates file types and sizes
@@ -83,7 +83,7 @@ src/
 - **Fill Lights**: Additional lighting for detail visibility
 - **Tone Mapping**: ACES Filmic tone mapping for realistic rendering
 
-## 🎮 Usage
+## Usage
 
 1. **Load a Model**: Drag and drop a 3D file or use the file picker
 2. **Interact**: 
@@ -92,7 +92,7 @@ src/
 3. **History**: Previously loaded models are automatically saved and can be reloaded
 4. **File Management**: Save models to your file system (Chrome/Edge only)
 
-## 🔧 Supported File Formats
+## Supported File Formats
 
 | Format | Extension | Description |
 |--------|-----------|-------------|
@@ -106,7 +106,7 @@ src/
 | GLB | `.glb` | Binary GLTF |
 | 3MF | `.3mf` | 3D Manufacturing Format |
 
-## 🛠️ Development
+## Development
 
 ### Prerequisites
 - Node.js 18+ 
@@ -135,16 +135,8 @@ yarn build
 - `yarn preview` - Preview production build
 - `yarn remove-comments` - Remove comments from source files
 
-## 🌐 Browser Support
+## Browser Support
 
 - **Chrome/Edge**: Full support including File System Access API
 - **Firefox/Safari**: Core functionality (history storage only)
 - **Mobile**: Touch-friendly interface with responsive design
-
-## 📝 License
-
-This project is private and not licensed for public use.
-
----
-
-Built with ❤️ using modern web technologies

@@ -48,7 +48,7 @@ export const ModelViewer: React.FC<ModelViewerProps> = ({
 
   return (
     <div className={`${styles.wrapper} ${className || ''}`}>
-      {/* History Panel */}
+
       <ModelHistoryPanel
         history={history}
         onLoadModel={loadModelFromHistory}
@@ -76,7 +76,6 @@ export const ModelViewer: React.FC<ModelViewerProps> = ({
         </label>
       </div>
 
-      {/* Error Display */}
       {error && (
         <div className={styles.errorOverlay}>
           <div className={styles.errorContent}>
