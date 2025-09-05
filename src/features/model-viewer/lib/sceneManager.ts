@@ -193,14 +193,14 @@ export class SceneManagerService {
     
     
     const direction = new THREE.Vector3().subVectors(camera.position, target).normalize();
-    const zoomAmount = zoomDelta * 5;
+    const zoomAmount = zoomDelta * TOUCH_CONSTANTS.ZOOM_SENSITIVITY_MULTIPLIER;
     
     camera.position.add(direction.multiplyScalar(-zoomAmount));
     
     const distance = camera.position.distanceTo(target);
     
-    const minDistance = 2;
-    const maxDistance = 20;
+    const minDistance = CAMERA_CONSTANTS.MIN_DISTANCE;
+    const maxDistance = CAMERA_CONSTANTS.MAX_DISTANCE;
     
     if (distance < minDistance) {
       const direction = camera.position.clone().sub(target).normalize();
@@ -404,13 +404,13 @@ export class SceneManagerService {
     const target = this.controls.target;
     
     const direction = new THREE.Vector3().subVectors(camera.position, target).normalize();
-    const zoomAmount = zoomDelta * 5;
+    const zoomAmount = zoomDelta * TOUCH_CONSTANTS.ZOOM_SENSITIVITY_MULTIPLIER;
     
     camera.position.add(direction.multiplyScalar(-zoomAmount));
     
     const distance = camera.position.distanceTo(target);
-    const minDistance = 2;
-    const maxDistance = 20;
+    const minDistance = CAMERA_CONSTANTS.MIN_DISTANCE;
+    const maxDistance = CAMERA_CONSTANTS.MAX_DISTANCE;
     
     if (distance < minDistance) {
       const direction = camera.position.clone().sub(target).normalize();

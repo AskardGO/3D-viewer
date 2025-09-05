@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { ThreeConfig } from '../../../shared/config/Three/ThreeConfig';
-import { type ThreeJSConfigOptions } from '../../../shared/config/Three';
+import { ThreeConfig, type ThreeJSConfigOptions } from '../../../shared/config/Three';
+import { SCENE_CONSTANTS, TOUCH_CONSTANTS, CAMERA_CONSTANTS, MODEL_CONSTANTS } from '../../../shared/config/Constants';
 
 export interface SceneServiceOptions {
   config?: ThreeJSConfigOptions;
@@ -19,8 +19,8 @@ export class SceneService {
   private modelRotation = { x: 0, y: 0 };
   
   private touchState = {
-    rotationSpeed: 0.005,
-    zoomSpeed: 0.01
+    rotationSpeed: TOUCH_CONSTANTS.ROTATION_SPEED,
+    zoomSpeed: TOUCH_CONSTANTS.ZOOM_SPEED
   };
 
   constructor(options: SceneServiceOptions) {
@@ -55,13 +55,17 @@ export class SceneService {
 
     const { scene } = this.threeConfig;
 
-    const testGeometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+    const testGeometry = new THREE.BoxGeometry(
+      SCENE_CONSTANTS.TEST_CUBE.SIZE,
+      SCENE_CONSTANTS.TEST_CUBE.SIZE,
+      SCENE_CONSTANTS.TEST_CUBE.SIZE
+    );
     const testMaterial = new THREE.MeshStandardMaterial({ 
-      color: 0x4f46e5,
-      metalness: 0.3,
-      roughness: 0.4,
+      color: SCENE_CONSTANTS.TEST_CUBE.COLOR,
+      metalness: SCENE_CONSTANTS.TEST_CUBE.METALNESS,
+      roughness: SCENE_CONSTANTS.TEST_CUBE.ROUGHNESS,
       transparent: true,
-      opacity: 0.7
+      opacity: SCENE_CONSTANTS.TEST_CUBE.OPACITY
     });
     const testCube = new THREE.Mesh(testGeometry, testMaterial);
     testCube.name = 'testCube';
@@ -137,8 +141,8 @@ export class SceneService {
     const size = box.getSize(new THREE.Vector3());
     
     const maxDimension = Math.max(size.x, size.y, size.z);
-    if (maxDimension > 0) {
-      const scale = 3 / maxDimension;
+    if (maxDimension > MODEL_CONSTANTS.BOUNDING_BOX.MIN_DIMENSION_THRESHOLD) {
+      const scale = MODEL_CONSTANTS.DEFAULT_SCALE_SIZE / maxDimension;
       model.scale.setScalar(scale);
       
       const scaledBox = new THREE.Box3().setFromObject(model);
@@ -185,12 +189,12 @@ export class SceneService {
     
     const maxDim = Math.max(finalSize.x, finalSize.y, finalSize.z);
     const fov = camera.fov * (Math.PI / 180);
-    const cameraDistance = Math.abs(maxDim / Math.sin(fov / 2)) * 1.5;
+    const cameraDistance = Math.abs(maxDim / Math.sin(fov / 2)) * CAMERA_CONSTANTS.DISTANCE_MULTIPLIER;
     
     const cameraPosition = new THREE.Vector3(
-      finalCenter.x + cameraDistance * 0.7,
-      finalCenter.y + cameraDistance * 0.5,
-      finalCenter.z + cameraDistance * 0.7
+      finalCenter.x + cameraDistance * CAMERA_CONSTANTS.POSITION_OFFSET.X_FACTOR,
+      finalCenter.y + cameraDistance * CAMERA_CONSTANTS.POSITION_OFFSET.Y_FACTOR,
+      finalCenter.z + cameraDistance * CAMERA_CONSTANTS.POSITION_OFFSET.Z_FACTOR
     );
     
     camera.position.copy(cameraPosition);
@@ -199,7 +203,7 @@ export class SceneService {
 
   private createStandardMaterial = (originalMaterial: THREE.Material): THREE.MeshStandardMaterial => {
     const standardMaterial = new THREE.MeshStandardMaterial({
-      color: (originalMaterial as any).color || 0xcccccc,
+      color: (originalMaterial as any).color || MODEL_CONSTANTS.DEFAULT_MATERIAL.COLOR,
       map: (originalMaterial as any).map || null,
       normalMap: (originalMaterial as any).normalMap || null,
       roughnessMap: (originalMaterial as any).roughnessMap || null,
@@ -207,9 +211,9 @@ export class SceneService {
       transparent: originalMaterial.transparent,
       opacity: originalMaterial.opacity,
       side: originalMaterial.side,
-      metalness: 0.5,
-      roughness: 0.2,
-      envMapIntensity: 1.5
+      metalness: MODEL_CONSTANTS.DEFAULT_MATERIAL.METALNESS,
+      roughness: MODEL_CONSTANTS.DEFAULT_MATERIAL.ROUGHNESS,
+      envMapIntensity: MODEL_CONSTANTS.DEFAULT_MATERIAL.ENV_MAP_INTENSITY
     });
     
     
@@ -301,7 +305,7 @@ export class SceneService {
     spherical.theta -= deltaX * this.touchState.rotationSpeed;
     spherical.phi += deltaY * this.touchState.rotationSpeed;
     
-    spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+    spherical.phi = Math.max(CAMERA_CONSTANTS.MIN_POLAR_ANGLE, Math.min(CAMERA_CONSTANTS.MAX_POLAR_ANGLE, spherical.phi));
     
     offset.setFromSpherical(spherical);
     camera.position.copy(offset);
@@ -314,13 +318,13 @@ export class SceneService {
     const { camera } = this.threeConfig;
     
     const direction = camera.position.clone().normalize();
-    const zoomAmount = zoomDelta * 5;
+    const zoomAmount = zoomDelta * TOUCH_CONSTANTS.ZOOM_SENSITIVITY_MULTIPLIER;
     
     camera.position.add(direction.multiplyScalar(-zoomAmount));
     
     const distance = camera.position.length();
-    const minDistance = 2;
-    const maxDistance = 20;
+    const minDistance = CAMERA_CONSTANTS.MIN_DISTANCE;
+    const maxDistance = CAMERA_CONSTANTS.MAX_DISTANCE;
     
     if (distance < minDistance) {
       camera.position.normalize().multiplyScalar(minDistance);
@@ -334,7 +338,7 @@ export class SceneService {
     
     const { camera } = this.threeConfig;
     
-    camera.rotateZ(-angleDelta * 0.5);
+    camera.rotateZ(-angleDelta * TOUCH_CONSTANTS.TWO_FINGER_ROTATION_MULTIPLIER);
   };
 }
 

@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useDeviceDetection } from '../../utils/deviceDetection';
+import { TOUCH_CONSTANTS } from '../../../shared/config/Constants';
 import styles from './TouchGestureOverlay.module.scss';
 
 interface TouchGestureOverlayProps {
@@ -32,7 +33,7 @@ export const TouchGestureOverlay: React.FC<TouchGestureOverlayProps> = ({
   
   // Show overlay only on mobile/tablet or Chrome emulation
   const shouldShowOverlay = isMobile || isTablet || 
-    (window.innerWidth <= 768) || 
+    (window.innerWidth <= TOUCH_CONSTANTS.MOBILE_BREAKPOINT) || 
     navigator.userAgent.includes('Mobile') ||
     navigator.userAgent.includes('Android') ||
     navigator.userAgent.includes('iPhone');
@@ -98,13 +99,13 @@ export const TouchGestureOverlay: React.FC<TouchGestureOverlayProps> = ({
       const center = getTouchCenter(touches[0], touches[1]);
 
       // Pinch zoom
-      if (touchStateRef.current.lastDistance > 0) {
-        const zoomDelta = (currentDistance - touchStateRef.current.lastDistance) * 0.01;
+      if (touchStateRef.current.lastDistance > TOUCH_CONSTANTS.INITIAL_DISTANCE) {
+        const zoomDelta = (currentDistance - touchStateRef.current.lastDistance) * TOUCH_CONSTANTS.PINCH_ZOOM_SCALE;
         onPinchZoom?.(zoomDelta, center);
       }
 
       // Two finger rotation
-      if (touchStateRef.current.lastAngle !== 0) {
+      if (touchStateRef.current.lastAngle !== TOUCH_CONSTANTS.INITIAL_ANGLE) {
         const angleDelta = currentAngle - touchStateRef.current.lastAngle;
         onTwoFingerRotate?.(angleDelta);
       }
@@ -124,8 +125,8 @@ export const TouchGestureOverlay: React.FC<TouchGestureOverlayProps> = ({
     if (event.touches.length === 0) {
       touchStateRef.current.isActive = false;
       touchStateRef.current.touches = [];
-      touchStateRef.current.lastDistance = 0;
-      touchStateRef.current.lastAngle = 0;
+      touchStateRef.current.lastDistance = TOUCH_CONSTANTS.INITIAL_DISTANCE;
+      touchStateRef.current.lastAngle = TOUCH_CONSTANTS.INITIAL_ANGLE;
     }
   };
 

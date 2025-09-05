@@ -1,11 +1,12 @@
-import * as THREE from "three";
+import * as THREE from 'three';
+import { SCENE_CONSTANTS, CAMERA_CONSTANTS } from '../Constants';
 
 export interface RendererConfig {
   antialias?: boolean;
   alpha?: boolean;
   powerPreference?: 'default' | 'high-performance' | 'low-power';
-  preserveDrawingBuffer?: boolean;
-  logarithmicDepthBuffer?: boolean;
+  shadowMapEnabled?: boolean;
+  shadowMapType?: THREE.ShadowMapType;
   physicallyCorrectLights?: boolean;
   shadowMap?: {
     enabled: boolean;
@@ -18,13 +19,14 @@ export interface CameraConfig {
   aspect?: number;
   near?: number;
   far?: number;
-  position?: THREE.Vector3Like;
-  lookAt?: THREE.Vector3Like;
+  position?: { x: number; y: number; z: number };
+  lookAt?: { x: number; y: number; z: number };
 }
 
 export interface SceneConfig {
   background?: THREE.ColorRepresentation | null;
   fog?: {
+    enabled: boolean;
     color: THREE.ColorRepresentation;
     near: number;
     far: number;
@@ -39,19 +41,10 @@ export interface LightingConfig {
   directional?: {
     color: THREE.ColorRepresentation;
     intensity: number;
-    position: THREE.Vector3Like;
+    position: { x: number; y: number; z: number };
     castShadow?: boolean;
-    shadow?: {
-      mapSize: { width: number; height: number };
-      camera: {
-        near: number;
-        far: number;
-        left: number;
-        right: number;
-        top: number;
-        bottom: number;
-      };
-    };
+    shadowMapSize?: number;
+    shadowCameraSize?: number;
   };
 }
 
@@ -63,19 +56,10 @@ interface RequiredLightingConfig {
   directional: {
     color: THREE.ColorRepresentation;
     intensity: number;
-    position: THREE.Vector3Like;
+    position: { x: number; y: number; z: number };
     castShadow?: boolean;
-    shadow?: {
-      mapSize: { width: number; height: number };
-      camera: {
-        near: number;
-        far: number;
-        left: number;
-        right: number;
-        top: number;
-        bottom: number;
-      };
-    };
+    shadowMapSize?: number;
+    shadowCameraSize?: number;
   };
 }
 
@@ -93,59 +77,64 @@ interface FullThreeJSConfig {
   lighting: RequiredLightingConfig;
 }
 
-export const DEFAULT_CONFIG: FullThreeJSConfig = {
-  renderer: {
-    antialias: true,
-    alpha: false,
-    powerPreference: 'high-performance',
-    preserveDrawingBuffer: false,
-    logarithmicDepthBuffer: false,
-    physicallyCorrectLights: true,
-    shadowMap: {
-      enabled: true,
-      type: THREE.PCFSoftShadowMap,
+export class ThreeConfig {
+  private static instance: ThreeConfig;
+  
+  public readonly scene: THREE.Scene;
+  public readonly camera: THREE.PerspectiveCamera;
+  public readonly renderer: THREE.WebGLRenderer;
+  public readonly lights: {
+    ambient?: THREE.AmbientLight;
+    directional?: THREE.DirectionalLight;
+  } = {};
+
+  private config: FullThreeJSConfig;
+
+  private static defaultConfig: FullThreeJSConfig = {
+    renderer: {
+      antialias: SCENE_CONSTANTS.RENDERER.ANTIALIAS,
+      alpha: SCENE_CONSTANTS.RENDERER.ALPHA,
+      powerPreference: SCENE_CONSTANTS.RENDERER.POWER_PREFERENCE,
+      shadowMapEnabled: true,
+      shadowMapType: THREE.PCFSoftShadowMap,
+      physicallyCorrectLights: false,
+      shadowMap: {
+        enabled: true,
+        type: THREE.PCFSoftShadowMap
+      }
     },
-  },
-  camera: {
-    fov: 60,
-    aspect: window.innerWidth / window.innerHeight,
-    near: 0.1,
-    far: 1000,
-    position: { x: 0, y: 2, z: 5 },
-    lookAt: { x: 0, y: 0, z: 0 },
-  },
-  scene: {
-    background: 0x87ceeb,
-    fog: {
-      color: 0x87ceeb,
-      near: 50,
-      far: 200,
+    camera: {
+      fov: CAMERA_CONSTANTS.FOV,
+      aspect: CAMERA_CONSTANTS.ASPECT_RATIO,
+      near: CAMERA_CONSTANTS.NEAR_PLANE,
+      far: CAMERA_CONSTANTS.FAR_PLANE,
+      position: { x: 5, y: 5, z: 5 },
+      lookAt: { x: 0, y: 0, z: 0 }
     },
-  },
-  lighting: {
-    ambient: {
-      color: 0x404040,
-      intensity: 0.4,
+    scene: {
+      background: 0x222222,
+      fog: {
+        enabled: false,
+        color: 0x222222,
+        near: 1,
+        far: 100
+      }
     },
-    directional: {
-      color: 0xffffff,
-      intensity: 1,
-      position: { x: 10, y: 10, z: 5 },
-      castShadow: true,
-      shadow: {
-        mapSize: { width: 2048, height: 2048 },
-        camera: {
-          near: 0.5,
-          far: 50,
-          left: -10,
-          right: 10,
-          top: 10,
-          bottom: -10,
-        },
+    lighting: {
+      ambient: {
+        color: SCENE_CONSTANTS.LIGHTING.AMBIENT.COLOR,
+        intensity: SCENE_CONSTANTS.LIGHTING.AMBIENT.INTENSITY
       },
-    },
-  },
-};
+      directional: {
+        color: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.COLOR,
+        intensity: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.INTENSITY,
+        position: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.POSITION,
+        castShadow: true,
+        shadowMapSize: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.SHADOW_MAP_SIZE,
+        shadowCameraSize: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.SHADOW_CAMERA_SIZE
+      }
+    }
+  };
 
 export class ThreeConfig {
   private static instance: ThreeConfig;
@@ -161,7 +150,7 @@ export class ThreeConfig {
   private config: FullThreeJSConfig;
 
   private constructor(options: ThreeJSConfigOptions = {}) {
-    this.config = this.mergeConfig(DEFAULT_CONFIG, options);
+    this.config = this.mergeConfig(defaultConfig, options);
     
     this.scene = this.createScene();
     
@@ -240,33 +229,18 @@ export class ThreeConfig {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     
-    if (this.config.renderer.shadowMap?.enabled) {
+    if (this.config.renderer.shadowMapEnabled) {
       renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = this.config.renderer.shadowMap.type;
+      renderer.shadowMap.type = this.config.renderer.shadowMapType;
     }
     
     return renderer;
   }
 
   private setupLighting(): void {
-    const sunLight = new THREE.DirectionalLight(0xfff4e6, 4.0);
-    sunLight.position.set(25, 35, 20);
-    sunLight.castShadow = true;
-    
-    sunLight.shadow.mapSize.width = 4096;
-    sunLight.shadow.mapSize.height = 4096;
-    sunLight.shadow.camera.near = 0.1;
-    sunLight.shadow.camera.far = 150;
-    sunLight.shadow.camera.left = -30;
-    sunLight.shadow.camera.right = 30;
-    sunLight.shadow.camera.top = 30;
-    sunLight.shadow.camera.bottom = -30;
-    sunLight.shadow.bias = -0.0001;
-    sunLight.shadow.normalBias = 0.05;
-    
-    this.scene.add(sunLight);
-
-    const skyLight = new THREE.HemisphereLight(
+    const ambientLight = new THREE.AmbientLight(
+      this.config.lighting.ambient.color,
+      this.config.lighting.ambient.intensity
       0x87ceeb,
       0x8B4513,
       0.6

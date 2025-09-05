@@ -8,8 +8,8 @@ export const TOUCH_CONSTANTS = {
   
   PINCH_ZOOM_SCALE: 0.01,
   
-  INITIAL_DISTANCE: 0,
-  INITIAL_ANGLE: 0,
+  INITIAL_DISTANCE: 0 as number,
+  INITIAL_ANGLE: 0 as number,
   
   MAX_TOUCH_POINTS_THRESHOLD: 0
 } as const;
