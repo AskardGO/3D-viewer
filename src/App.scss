@@ -1,0 +1,68 @@
+#root {
+  position: relative;
+  overflow: hidden;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  border: unset;
+}
+
+.App {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.icon__button {
+
+  position: relative;
+
+  & button {
+    position: relative;
+    z-index: 1;
+  }
+
+  & div:last-child {
+    position: absolute;
+    top: 0;
+    z-index: 0;
+  }
+
+}
+
+.MuiPaper-root {
+  width: min-content;
+  padding: 1.2rem;
+
+  .MuiCardContent-root {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    min-width: 30vw;
+
+    & .card__content {
+      display: flex;
+      position: relative;
+
+      & span {
+        text-wrap: nowrap;
+      }
+
+      & div {
+        width: 0.1rem;
+      }
+
+    }
+
+  }
+
+}
+
+.background {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+}

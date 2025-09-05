@@ -1,0 +1,280 @@
+.model-persistence-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .persistence-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+
+    h3 {
+      margin: 0;
+      color: #333;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .toggle-button {
+      background: none;
+      border: none;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: background-color 0.2s ease;
+      color: #666;
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.1);
+      }
+    }
+  }
+
+  .persistence-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+
+    .save-button {
+      background: linear-gradient(135deg, #4CAF50, #45a049);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      flex: 1;
+      min-width: 140px;
+
+      &:hover:not(:disabled) {
+        background: linear-gradient(135deg, #45a049, #3d8b40);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+      }
+
+      &:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+    }
+
+    .clear-all-button {
+      background: linear-gradient(135deg, #f44336, #d32f2f);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: linear-gradient(135deg, #d32f2f, #c62828);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+      }
+    }
+  }
+
+  .persistence-content {
+    animation: slideDown 0.3s ease-out;
+  }
+
+  .persistence-unsupported {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+
+    h3 {
+      color: #333;
+      margin-bottom: 12px;
+    }
+
+    p {
+      margin: 8px 0;
+      line-height: 1.5;
+    }
+  }
+
+  .no-models {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+
+    p {
+      margin: 8px 0;
+      line-height: 1.5;
+    }
+  }
+
+  .saved-models-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background: #fafafa;
+
+    .saved-model-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e0e0e0;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      &:hover {
+        background-color: #f0f0f0;
+      }
+
+      &.selected {
+        background-color: #e3f2fd;
+        border-left: 3px solid #2196F3;
+      }
+
+      .model-info {
+        flex: 1;
+        min-width: 0;
+
+        .model-name {
+          font-weight: 500;
+          color: #333;
+          margin-bottom: 4px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .model-details {
+          display: flex;
+          gap: 12px;
+          font-size: 12px;
+          color: #666;
+          flex-wrap: wrap;
+
+          .model-format {
+            background: #e0e0e0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+          }
+
+          .model-size,
+          .model-date {
+            white-space: nowrap;
+          }
+        }
+      }
+
+      .model-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+
+        .load-button {
+          background: linear-gradient(135deg, #2196F3, #1976D2);
+          color: white;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 500;
+          transition: all 0.3s ease;
+
+          &:hover:not(:disabled) {
+            background: linear-gradient(135deg, #1976D2, #1565C0);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3);
+          }
+
+          &:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+          }
+        }
+
+        .delete-button {
+          background: #f44336;
+          color: white;
+          border: none;
+          padding: 4px 8px;
+          border-radius: 50%;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: bold;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.3s ease;
+
+          &:hover {
+            background: #d32f2f;
+            transform: scale(1.1);
+          }
+        }
+      }
+    }
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .model-persistence-panel {
+    .persistence-actions {
+      flex-direction: column;
+
+      .save-button,
+      .clear-all-button {
+        width: 100%;
+      }
+    }
+
+    .saved-models-list {
+      .saved-model-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+
+        .model-actions {
+          width: 100%;
+          justify-content: flex-end;
+        }
+      }
+    }
+  }
+}

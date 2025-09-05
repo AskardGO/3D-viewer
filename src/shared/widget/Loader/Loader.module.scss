@@ -1,0 +1,35 @@
+.loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top: 3px solid #4f46e5;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.small .spinner {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.medium .spinner {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+}
+
+.large .spinner {
+  width: 60px;
+  height: 60px;
+  border-width: 4px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
