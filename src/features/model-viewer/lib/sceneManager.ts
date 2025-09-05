@@ -9,7 +9,7 @@ export interface SceneManagerOptions {
 
 export class SceneManagerService {
   private threeConfig: ThreeConfig;
-  private controls: OrbitControls;
+  private controls!: OrbitControls;
   private animationId: number | null = null;
   private container: HTMLElement;
 
