@@ -47,7 +47,11 @@ export interface UseModelViewerReturn {
   clearError: () => void
   
   history: UseModelHistoryReturn
-  loadModelFromHistory: (id: string) => Promise<void>;
+  loadModelFromHistory: (id: string) => Promise<void>
+  
+  rotateCameraSingleFinger: (deltaX: number, deltaY: number) => void
+  zoomCamera: (zoomDelta: number) => void;
+  rotateCameraTwoFinger: (angleDelta: number) => void;
 }
 
 export const useModelViewer = (options: UseModelViewerOptions = {}): UseModelViewerReturn => {
@@ -196,6 +200,24 @@ export const useModelViewer = (options: UseModelViewerOptions = {}): UseModelVie
     }
   }, [history, handleFileLoad]);
 
+  const rotateCameraSingleFinger = useCallback((deltaX: number, deltaY: number) => {
+    if (sceneServiceRef.current) {
+      sceneServiceRef.current.rotateCameraSingleFinger(deltaX, deltaY);
+    }
+  }, []);
+
+  const zoomCamera = useCallback((zoomDelta: number) => {
+    if (sceneServiceRef.current) {
+      sceneServiceRef.current.zoomCamera(zoomDelta);
+    }
+  }, []);
+
+  const rotateCameraTwoFinger = useCallback((angleDelta: number) => {
+    if (sceneServiceRef.current) {
+      sceneServiceRef.current.rotateCameraTwoFinger(angleDelta);
+    }
+  }, []);
+
   return {
     loadingState,
     currentModel,
@@ -212,6 +234,10 @@ export const useModelViewer = (options: UseModelViewerOptions = {}): UseModelVie
     clearError,
     
     history,
-    loadModelFromHistory
+    loadModelFromHistory,
+    
+    rotateCameraSingleFinger,
+    zoomCamera,
+    rotateCameraTwoFinger
   };
 };

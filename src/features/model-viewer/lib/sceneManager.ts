@@ -12,13 +12,22 @@ export class SceneManagerService {
   private controls!: OrbitControls;
   private animationId: number | null = null;
   private container: HTMLElement;
+  
+  private touchState = {
+    isRotating: false,
+    isZooming: false,
+    lastTouchPositions: [] as Array<{ x: number; y: number }>,
+    lastDistance: 0,
+    lastCenter: { x: 0, y: 0 },
+    rotationSpeed: 0.005,
+    zoomSpeed: 0.01
+  };
 
   constructor(options: SceneManagerOptions) {
     this.container = options.container;
     this.threeConfig = ThreeConfig.getInstance(options.config);
     
     this.setupRenderer();
-    this.setupControls();
     this.setupDefaultScene();
     this.startAnimation();
   }
@@ -33,46 +42,201 @@ export class SceneManagerService {
     this.updateCameraAspect(clientWidth, clientHeight);
   };
 
-  private setupControls = (): void => {
-    const { camera, renderer } = this.threeConfig;
+  public initializeControls = (canvas: HTMLCanvasElement): void => {
+    this.controls = new OrbitControls(this.threeConfig.camera, canvas);
     
-    this.controls = new OrbitControls(camera, renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     
-    this.setupMobileControls();
-  };
-
-  private setupMobileControls = (): void => {
-    const isTouchDevice = 'ontouchstart' in window || 
-                         navigator.maxTouchPoints > 0 || 
-                         window.innerWidth <= 768;
-    
-    if (isTouchDevice) {
+    if (!isMobile) {
+      this.controls.enableDamping = true;
+      this.controls.dampingFactor = 0.05;
+      
       this.controls.enableRotate = true;
       this.controls.enableZoom = true;
       this.controls.enablePan = true;
       
-      this.controls.rotateSpeed = 1.0;
-      this.controls.zoomSpeed = 1.2;
-      this.controls.panSpeed = 0.8;
-      
-      this.controls.minDistance = 2;
-      this.controls.maxDistance = 20;
-      this.controls.maxPolarAngle = Math.PI * 0.9;
-      this.controls.minPolarAngle = Math.PI * 0.1;
-      
-      this.controls.enableDamping = true;
-      this.controls.dampingFactor = 0.1;
-      
-      this.controls.domElement?.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-      }, { passive: false });
-      
-      this.controls.domElement?.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-      }, { passive: false });
+      this.setupMobileControls();
+    } else {
+      this.controls.enabled = false;
     }
+    
+    this.setupCustomTouchControls(canvas);
+  };
+
+  private setupMobileControls = (): void => {
+    this.controls.rotateSpeed = 1.0;
+    this.controls.zoomSpeed = 1.2;
+    this.controls.panSpeed = 0.8;
+    
+    this.controls.minDistance = 2;
+    this.controls.maxDistance = 20;
+    this.controls.maxPolarAngle = Math.PI * 0.9;
+    this.controls.minPolarAngle = Math.PI * 0.1;
+    
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.1;
+    
+    this.controls.touches = {
+      ONE: THREE.TOUCH.ROTATE,
+      TWO: THREE.TOUCH.DOLLY_PAN
+    };
+    
+    this.controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: THREE.MOUSE.PAN
+    };
+  };
+
+  private setupCustomTouchControls = (canvas: HTMLCanvasElement): void => {
+    const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    
+    canvas.style.touchAction = 'none';
+    canvas.addEventListener('touchstart', this.handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', this.handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', this.handleTouchEnd, { passive: false });
+    canvas.addEventListener('touchcancel', this.handleTouchEnd, { passive: false });
+  };
+
+  private handleTouchStart = (event: TouchEvent): void => {
+    event.preventDefault();
+    
+    const touches = Array.from(event.touches);
+    
+    this.touchState.lastTouchPositions = touches.map(touch => ({
+      x: touch.clientX,
+      y: touch.clientY
+    }));
+
+    if (touches.length === 1) {
+      this.touchState.isRotating = true;
+    } else if (touches.length === 2) {
+      this.touchState.isZooming = true;
+      this.touchState.lastDistance = this.getTouchDistance(touches[0], touches[1]);
+      this.touchState.lastCenter = this.getTouchCenter(touches[0], touches[1]);
+    }
+  };
+
+  private handleTouchMove = (event: TouchEvent): void => {
+    event.preventDefault();
+    
+    const touches = Array.from(event.touches);
+    
+    if (touches.length === 1 && this.touchState.isRotating) {
+      this.handleSingleFingerRotation(touches[0]);
+    } else if (touches.length === 2) {
+      this.handleTwoFingerGestures(touches[0], touches[1]);
+    }
+  };
+
+  private handleTouchEnd = (event: TouchEvent): void => {
+    event.preventDefault();
+    
+    
+    this.touchState.isRotating = false;
+    this.touchState.isZooming = false;
+    this.touchState.lastTouchPositions = [];
+  };
+
+  private handleSingleFingerRotation = (touch: Touch): void => {
+    const lastTouch = this.touchState.lastTouchPositions[0];
+    if (!lastTouch) return;
+
+    const deltaX = touch.clientX - lastTouch.x;
+    const deltaY = touch.clientY - lastTouch.y;
+
+
+    const camera = this.threeConfig.camera;
+    const target = this.controls.target;
+    
+    const offset = new THREE.Vector3().subVectors(camera.position, target);
+    const spherical = new THREE.Spherical().setFromVector3(offset);
+    
+    spherical.theta -= deltaX * this.touchState.rotationSpeed;
+    spherical.phi += deltaY * this.touchState.rotationSpeed;
+    
+    spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+    
+    offset.setFromSpherical(spherical);
+    camera.position.copy(target).add(offset);
+    camera.lookAt(target);
+    
+    this.touchState.lastTouchPositions[0] = { x: touch.clientX, y: touch.clientY };
+  };
+
+  private handleTwoFingerGestures = (touch1: Touch, touch2: Touch): void => {
+    const currentDistance = this.getTouchDistance(touch1, touch2);
+    const currentCenter = this.getTouchCenter(touch1, touch2);
+
+
+    if (this.touchState.isZooming && this.touchState.lastDistance > 0) {
+      const zoomDelta = (currentDistance - this.touchState.lastDistance) * this.touchState.zoomSpeed;
+      this.handlePinchZoom(zoomDelta, currentCenter);
+    }
+
+    if (this.touchState.lastTouchPositions.length === 2) {
+      this.handleTwoFingerRotation(touch1, touch2);
+    }
+
+    this.touchState.lastDistance = currentDistance;
+    this.touchState.lastCenter = currentCenter;
+    this.touchState.lastTouchPositions = [
+      { x: touch1.clientX, y: touch1.clientY },
+      { x: touch2.clientX, y: touch2.clientY }
+    ];
+  };
+
+  private handlePinchZoom = (zoomDelta: number, center: { x: number; y: number }): void => {
+    const camera = this.threeConfig.camera;
+    const target = this.controls.target;
+    
+    
+    const direction = new THREE.Vector3().subVectors(camera.position, target).normalize();
+    const zoomAmount = zoomDelta * 5;
+    
+    camera.position.add(direction.multiplyScalar(-zoomAmount));
+    
+    const distance = camera.position.distanceTo(target);
+    
+    const minDistance = 2;
+    const maxDistance = 20;
+    
+    if (distance < minDistance) {
+      const direction = camera.position.clone().sub(target).normalize();
+      camera.position.copy(target).add(direction.multiplyScalar(minDistance));
+    } else if (distance > maxDistance) {
+      const direction = camera.position.clone().sub(target).normalize();
+      camera.position.copy(target).add(direction.multiplyScalar(maxDistance));
+    }
+    
+  };
+
+  private handleTwoFingerRotation = (touch1: Touch, touch2: Touch): void => {
+    const lastTouch1 = this.touchState.lastTouchPositions[0];
+    const lastTouch2 = this.touchState.lastTouchPositions[1];
+    
+    if (!lastTouch1 || !lastTouch2)
+      return;
+
+    const currentAngle = Math.atan2(touch2.clientY - touch1.clientY, touch2.clientX - touch1.clientX);
+    const lastAngle = Math.atan2(lastTouch2.y - lastTouch1.y, lastTouch2.x - lastTouch1.x);
+    
+    const angleDelta = currentAngle - lastAngle;
+
+    this.controls.object.rotateZ(-angleDelta * 0.5);
+  };
+
+  private getTouchDistance = (touch1: Touch, touch2: Touch): number => {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  private getTouchCenter = (touch1: Touch, touch2: Touch): { x: number; y: number } => {
+    return {
+      x: (touch1.clientX + touch2.clientX) / 2,
+      y: (touch1.clientY + touch2.clientY) / 2
+    };
   };
 
   private setupDefaultScene = (): void => {
@@ -107,7 +271,10 @@ export class SceneManagerService {
     const animate = () => {
       const { renderer, scene, camera } = this.threeConfig;
       
-      this.controls.update();
+      if (this.controls && this.controls.enabled) {
+        this.controls.update();
+      }
+      
       renderer.render(scene, camera);
       
       this.animationId = requestAnimationFrame(animate);
@@ -199,6 +366,52 @@ export class SceneManagerService {
   handleResize = (): void => {
     const { clientWidth, clientHeight } = this.container;
     this.updateCameraAspect(clientWidth, clientHeight);
+  };
+
+  public rotateCameraSingleFinger = (deltaX: number, deltaY: number): void => {
+    const camera = this.threeConfig.camera;
+    const target = this.controls.target;
+    
+    const offset = new THREE.Vector3().subVectors(camera.position, target);
+    const spherical = new THREE.Spherical().setFromVector3(offset);
+    
+    spherical.theta -= deltaX * this.touchState.rotationSpeed;
+    spherical.phi += deltaY * this.touchState.rotationSpeed;
+    
+    spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+    
+    offset.setFromSpherical(spherical);
+    camera.position.copy(target).add(offset);
+    camera.lookAt(target);
+  };
+
+  public zoomCamera = (zoomDelta: number): void => {
+    const camera = this.threeConfig.camera;
+    const target = this.controls.target;
+    
+    const direction = new THREE.Vector3().subVectors(camera.position, target).normalize();
+    const zoomAmount = zoomDelta * 5;
+    
+    camera.position.add(direction.multiplyScalar(-zoomAmount));
+    
+    const distance = camera.position.distanceTo(target);
+    const minDistance = 2;
+    const maxDistance = 20;
+    
+    if (distance < minDistance) {
+      const direction = camera.position.clone().sub(target).normalize();
+      camera.position.copy(target).add(direction.multiplyScalar(minDistance));
+    } else if (distance > maxDistance) {
+      const direction = camera.position.clone().sub(target).normalize();
+      camera.position.copy(target).add(direction.multiplyScalar(maxDistance));
+    }
+    
+  };
+
+  public rotateCameraTwoFinger = (angleDelta: number): void => {
+    const camera = this.threeConfig.camera;
+    
+    camera.rotateZ(-angleDelta * 0.5);
   };
 
   dispose = (): void => {

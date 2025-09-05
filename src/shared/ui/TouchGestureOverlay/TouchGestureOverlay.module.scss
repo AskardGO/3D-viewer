@@ -1,0 +1,32 @@
+.touchOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+  pointer-events: none;
+  background: transparent;
+  
+  // Debug info for testing
+  .debugInfo {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: monospace;
+    z-index: 1000;
+    pointer-events: none;
+  }
+}
+
+// Hide debug info in production
+@media (min-width: 769px) {
+  .touchOverlay {
+    display: none;
+  }
+}

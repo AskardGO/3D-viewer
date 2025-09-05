@@ -17,6 +17,11 @@ export class SceneService {
   private isMouseDown = false;
   private previousMousePosition = { x: 0, y: 0 };
   private modelRotation = { x: 0, y: 0 };
+  
+  private touchState = {
+    rotationSpeed: 0.005,
+    zoomSpeed: 0.01
+  };
 
   constructor(options: SceneServiceOptions) {
     this.mountElement = options.mountElement;
@@ -190,11 +195,6 @@ export class SceneService {
     
     camera.position.copy(cameraPosition);
     camera.lookAt(finalCenter);
-    
-    console.log('Camera focused on model:', {
-      modelCenter: finalCenter,
-      cameraPosition: camera.position
-    });
   };
 
   private createStandardMaterial = (originalMaterial: THREE.Material): THREE.MeshStandardMaterial => {
@@ -212,11 +212,6 @@ export class SceneService {
       envMapIntensity: 1.5
     });
     
-    console.log('Created StandardMaterial:', {
-      originalType: originalMaterial.constructor.name,
-      metalness: standardMaterial.metalness,
-      roughness: standardMaterial.roughness
-    });
     
     return standardMaterial;
   };
@@ -290,6 +285,56 @@ export class SceneService {
     
     camera.position.multiplyScalar(1 + direction * zoomSpeed);
     camera.position.clampLength(2, 50);
+  };
+
+  public rotateCameraSingleFinger = (deltaX: number, deltaY: number): void => {
+    if (!this.threeConfig) return;
+    
+    const { camera } = this.threeConfig;
+    
+    const spherical = new THREE.Spherical();
+    const offset = new THREE.Vector3();
+    
+    offset.copy(camera.position);
+    spherical.setFromVector3(offset);
+    
+    spherical.theta -= deltaX * this.touchState.rotationSpeed;
+    spherical.phi += deltaY * this.touchState.rotationSpeed;
+    
+    spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+    
+    offset.setFromSpherical(spherical);
+    camera.position.copy(offset);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+  };
+
+  public zoomCamera = (zoomDelta: number): void => {
+    if (!this.threeConfig) return;
+    
+    const { camera } = this.threeConfig;
+    
+    const direction = camera.position.clone().normalize();
+    const zoomAmount = zoomDelta * 5;
+    
+    camera.position.add(direction.multiplyScalar(-zoomAmount));
+    
+    const distance = camera.position.length();
+    const minDistance = 2;
+    const maxDistance = 20;
+    
+    if (distance < minDistance) {
+      camera.position.normalize().multiplyScalar(minDistance);
+    } else if (distance > maxDistance) {
+      camera.position.normalize().multiplyScalar(maxDistance);
+    }
+  };
+
+  public rotateCameraTwoFinger = (angleDelta: number): void => {
+    if (!this.threeConfig) return;
+    
+    const { camera } = this.threeConfig;
+    
+    camera.rotateZ(-angleDelta * 0.5);
   };
 }
 

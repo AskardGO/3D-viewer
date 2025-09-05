@@ -5,9 +5,10 @@ import { Loader } from '../../../shared/widget/Loader';
 import { type ModelViewerError } from '../lib/fileValidation';
 import { type LoadingProgress } from '../lib/modelLoader';
 import { useModelViewer } from '../hooks/useModelViewer';
-import { ModelHistoryPanel } from './ModelHistoryPanel';
-import { FILE_FORMATS } from '../config/fileFormats';
 import { useDeviceDetection } from '../../../shared/utils/deviceDetection';
+import { ModelHistoryPanel } from './ModelHistoryPanel';
+import { TouchGestureOverlay } from '../../../shared/ui/TouchGestureOverlay';
+import { FILE_FORMATS } from '../config/fileFormats';
 import styles from './ModelViewer.module.scss';
 
 export interface ModelViewerProps {
@@ -39,7 +40,10 @@ export const ModelViewer: React.FC<ModelViewerProps> = ({
     mountRef,
     clearError,
     history,
-    loadModelFromHistory
+    loadModelFromHistory,
+    rotateCameraSingleFinger,
+    zoomCamera,
+    rotateCameraTwoFinger
   } = useModelViewer({
     config,
     maxFileSize,
@@ -56,8 +60,27 @@ export const ModelViewer: React.FC<ModelViewerProps> = ({
     deviceInfo.isTouchDevice ? styles.touchDevice : ''
   ].filter(Boolean).join(' ');
 
+  const handleSingleFingerMove = (deltaX: number, deltaY: number) => {
+    rotateCameraSingleFinger(deltaX, deltaY);
+  };
+
+  const handlePinchZoom = (zoomDelta: number, center: { x: number; y: number }) => {
+    zoomCamera(zoomDelta);
+  };
+
+  const handleTwoFingerRotate = (angleDelta: number) => {
+    rotateCameraTwoFinger(angleDelta);
+  };
+
   return (
     <div className={wrapperClasses}>
+      {/* Touch Gesture Overlay - только на мобильных */}
+      <TouchGestureOverlay
+        onSingleFingerMove={handleSingleFingerMove}
+        onPinchZoom={handlePinchZoom}
+        onTwoFingerRotate={handleTwoFingerRotate}
+      />
+
       {/* История моделей - адаптивное позиционирование */}
       <ModelHistoryPanel
         history={history}
