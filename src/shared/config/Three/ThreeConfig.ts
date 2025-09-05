@@ -48,6 +48,14 @@ export interface LightingConfig {
     shadowMapSize?: number;
     shadowCameraSize?: number;
   };
+  spotlight?: {
+    color: THREE.ColorRepresentation;
+    intensity: number;
+    angle: number;
+    penumbra: number;
+    decay: number;
+    distance: number;
+  };
 }
 
 interface RequiredLightingConfig {
@@ -62,6 +70,14 @@ interface RequiredLightingConfig {
     castShadow?: boolean;
     shadowMapSize?: number;
     shadowCameraSize?: number;
+  };
+  spotlight: {
+    color: THREE.ColorRepresentation;
+    intensity: number;
+    angle: number;
+    penumbra: number;
+    decay: number;
+    distance: number;
   };
 }
 
@@ -123,6 +139,14 @@ export const DEFAULT_CONFIG: FullThreeJSConfig = {
       castShadow: true,
       shadowMapSize: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.SHADOW_MAP_SIZE,
       shadowCameraSize: SCENE_CONSTANTS.LIGHTING.DIRECTIONAL.SHADOW_CAMERA_SIZE
+    },
+    spotlight: {
+      color: SCENE_CONSTANTS.LIGHTING.SPOTLIGHT.COLOR,
+      intensity: SCENE_CONSTANTS.LIGHTING.SPOTLIGHT.INTENSITY,
+      angle: SCENE_CONSTANTS.LIGHTING.SPOTLIGHT.ANGLE,
+      penumbra: SCENE_CONSTANTS.LIGHTING.SPOTLIGHT.PENUMBRA,
+      decay: SCENE_CONSTANTS.LIGHTING.SPOTLIGHT.DECAY,
+      distance: SCENE_CONSTANTS.LIGHTING.SPOTLIGHT.DISTANCE
     }
   }
 };
@@ -136,12 +160,13 @@ export class ThreeConfig {
   public readonly lights: {
     ambient?: THREE.AmbientLight;
     directional?: THREE.DirectionalLight;
+    spotlight?: THREE.SpotLight;
   } = {};
 
   private config: FullThreeJSConfig;
 
   private constructor(options: ThreeJSConfigOptions = {}) {
-    this.config = this.mergeConfig(DEFAULT_CONFIG, options);
+    this.config = DEFAULT_CONFIG;
     
     this.scene = this.createScene();
     
@@ -152,26 +177,6 @@ export class ThreeConfig {
     this.setupLighting();
   }
 
-  private mergeConfig(
-    defaultConfig: FullThreeJSConfig,
-    userConfig: ThreeJSConfigOptions
-  ): FullThreeJSConfig {
-    return {
-      renderer: { ...defaultConfig.renderer, ...userConfig.renderer },
-      camera: { ...defaultConfig.camera, ...userConfig.camera },
-      scene: { ...defaultConfig.scene, ...userConfig.scene },
-      lighting: {
-        ambient: { 
-          ...defaultConfig.lighting.ambient, 
-          ...(userConfig.lighting?.ambient || {})
-        },
-        directional: { 
-          ...defaultConfig.lighting.directional, 
-          ...(userConfig.lighting?.directional || {})
-        },
-      },
-    };
-  }
 
   private createScene(): THREE.Scene {
     const scene = new THREE.Scene();
@@ -229,6 +234,7 @@ export class ThreeConfig {
   }
 
   private setupLighting(): void {
+    // Минимальный ambient свет для реализма
     const ambientLight = new THREE.AmbientLight(
       this.config.lighting.ambient.color,
       this.config.lighting.ambient.intensity
@@ -236,6 +242,7 @@ export class ThreeConfig {
     this.scene.add(ambientLight);
     this.lights.ambient = ambientLight;
 
+    // Слабый directional свет для общего освещения
     const directionalLight = new THREE.DirectionalLight(
       this.config.lighting.directional.color,
       this.config.lighting.directional.intensity
@@ -263,6 +270,25 @@ export class ThreeConfig {
     
     this.scene.add(directionalLight);
     this.lights.directional = directionalLight;
+
+    // Spotlight как "фонарик" от камеры
+    const spotlight = new THREE.SpotLight(
+      this.config.lighting.spotlight.color,
+      this.config.lighting.spotlight.intensity,
+      this.config.lighting.spotlight.distance,
+      this.config.lighting.spotlight.angle,
+      this.config.lighting.spotlight.penumbra,
+      this.config.lighting.spotlight.decay
+    );
+    
+    // Позиционируем spotlight в позиции камеры
+    spotlight.position.copy(this.camera.position);
+    spotlight.target.position.set(0, 0, 0);
+    spotlight.castShadow = true;
+    
+    this.scene.add(spotlight);
+    this.scene.add(spotlight.target);
+    this.lights.spotlight = spotlight;
   }
 
   public updateCameraAspect(aspect: number): void {

@@ -18,14 +18,22 @@ export const SCENE_CONSTANTS = {
   LIGHTING: {
     AMBIENT: {
       COLOR: 0x404040,
-      INTENSITY: 0.4
+      INTENSITY: 1
     },
     DIRECTIONAL: {
       COLOR: 0xffffff,
-      INTENSITY: 1,
-      POSITION: { x: 10, y: 10, z: 5 },
+      INTENSITY: 0.8,
+      POSITION: { x: 0, y: 0, z: 1 },
       SHADOW_MAP_SIZE: 2048,
       SHADOW_CAMERA_SIZE: 10
+    },
+    SPOTLIGHT: {
+      COLOR: 0xffffff,
+      INTENSITY: 1.5,
+      ANGLE: Math.PI / 6,
+      PENUMBRA: 0.1,
+      DECAY: 2,
+      DISTANCE: 100
     }
   },
   

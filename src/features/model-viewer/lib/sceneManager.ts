@@ -26,6 +26,8 @@ export class SceneManagerService {
 
   constructor(options: SceneManagerOptions) {
     this.container = options.container;
+    // Force recreation to pick up updated constants
+    ThreeConfig.dispose();
     this.threeConfig = ThreeConfig.getInstance(options.config);
     
     this.setupRenderer();

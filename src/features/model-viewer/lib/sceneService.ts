@@ -34,7 +34,9 @@ export class SceneService {
   }
 
   private initialize = (config?: ThreeJSConfigOptions): void => {
-    this.threeConfig = ThreeConfig.getInstance(config);
+    // Force recreation to pick up updated constants
+    ThreeConfig.dispose();
+    this.threeConfig = ThreeConfig.recreateInstance(config || {});
     const { renderer, camera, scene } = this.threeConfig;
 
     const { clientWidth, clientHeight } = this.mountElement;
@@ -91,7 +93,13 @@ export class SceneService {
     const animate = () => {
       if (!this.threeConfig) return;
 
-      const { renderer, scene, camera } = this.threeConfig;
+      const { renderer, scene, camera, lights } = this.threeConfig;
+      
+      // Обновляем позицию spotlight чтобы он следовал за камерой
+      if (lights.spotlight) {
+        lights.spotlight.position.copy(camera.position);
+        lights.spotlight.target.position.set(0, 0, 0);
+      }
       
       renderer.render(scene, camera);
       
